@@ -121,7 +121,7 @@ func (info *VideoInfo) GetThumbnailURL(quality ThumbnailQuality) *url.URL {
 }
 
 // Download is a convenience method to download a format to an io.Writer
-func (info *VideoInfo) Download(format Format, dest io.Writer) error {
+func (info *VideoInfo) Download(format Format, dest io.Writer, progressChan chan int64) error {
 	u, err := info.GetDownloadURL(format)
 	if err != nil {
 		return err
@@ -134,7 +134,13 @@ func (info *VideoInfo) Download(format Format, dest io.Writer) error {
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		return fmt.Errorf("Invalid status code: %d", resp.StatusCode)
 	}
+
+	// Report out total size
+	progressChan <- resp.ContentLength
+
 	_, err = io.Copy(dest, resp.Body)
+
+	progressChan <- -1
 	return err
 }
 
